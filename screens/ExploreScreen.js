@@ -2,7 +2,9 @@ import {useTheme} from '@react-navigation/native';
 import React from 'react';
 import {Image, StyleSheet, Text, View} from 'react-native';
 import MapView, {Callout, Marker, PROVIDER_GOOGLE} from 'react-native-maps';
+import {AuthContext} from '../components/context';
 
+// Configuration for the Dark mode
 const mapDarkStyle = [
   {
     elementType: 'geometry',
@@ -202,6 +204,32 @@ const mapStandardStyle = [
 ];
 
 const ExploreScreen = () => {
+  // Retrieving the token in the storage
+  const getUsetToken = async () => {
+    try {
+      const feedUT = await AsyncStorage.getItem('userToken');
+      setUserToken(feedUT);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  React.useEffect(() => {
+    getUsetToken();
+  }, []);
+
+  const [userToken, setUserToken] = React.useState();
+
+  const {signOut} = React.useContext(AuthContext);
+
+  // Logout the user if the token has expired
+  if (userToken) {
+    const decodedToken = jwtDecode(userToken);
+    if (decodedToken.exp * 1000 < Date.now()) {
+      signOut();
+    }
+  }
+
   const theme = useTheme();
   return (
     <MapView

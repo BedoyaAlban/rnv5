@@ -13,12 +13,10 @@ import {
   Provider as PaperProvider,
 } from 'react-native-paper';
 import {AuthContext} from './components/context';
-import BookmarkScreen from './screens/BookmarkScreen';
 import {DrawerContent} from './screens/DrawerContent';
+import ExploreScreen from './screens/ExploreScreen';
 import MainTabScreen from './screens/MainTabScreen';
 import RootStackScreen from './screens/RootStackScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import SupportScreen from './screens/SupportScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -30,8 +28,9 @@ const App = () => {
 
   const initialLoginState = {
     isLoading: true,
-    userName: true,
+    userHandle: true,
     userToken: true,
+    userImg: true,
   };
 
   const CustomDefaultTheme = {
@@ -69,22 +68,31 @@ const App = () => {
       case 'LOGIN':
         return {
           ...prevState,
-          userName: action.id,
           userToken: action.token,
           isLoading: false,
         };
       case 'LOGOUT':
         return {
           ...prevState,
-          userName: null,
           userToken: null,
           isLoading: false,
         };
       case 'REGISTER':
         return {
           ...prevState,
-          userName: action.id,
           userToken: action.token,
+          isLoading: false,
+        };
+      case 'STOREIMG':
+        return {
+          ...prevState,
+          userImg: action.image,
+          isLoading: false,
+        };
+      case 'REMOVEIMG':
+        return {
+          ...prevState,
+          userImg: null,
           isLoading: false,
         };
     }
@@ -97,18 +105,16 @@ const App = () => {
 
   const authContext = React.useMemo(
     () => ({
-      signIn: async foundUser => {
+      signIn: async token => {
         // setUserToken('azerty');
         // setIsLoading(false);
-        const userToken = String(foundUser[0].userToken);
-        const userName = foundUser[0].username;
-
+        const userToken = token;
         try {
           await AsyncStorage.setItem('userToken', userToken);
         } catch (e) {
           console.log(e);
         }
-        dispatch({type: 'LOGIN', id: userName, token: userToken});
+        dispatch({type: 'LOGIN', token: userToken});
       },
       signOut: async () => {
         // setUserToken(null);
@@ -120,10 +126,23 @@ const App = () => {
         }
         dispatch({type: 'LOGOUT'});
       },
-      signUp: () => {
-        setUserToken('azerty');
-        setIsLoading(false);
+      /*storeImage: async img => {
+        const image = img;
+        try {
+          await AsyncStorage.setItem('userImg', image);
+        } catch (e) {
+          console.log(e);
+        }
+        dispatch({type: 'STOREIMG', image: image});
       },
+      removeImage: async () => {
+        try {
+          await AsyncStorage.removeItem('userImg');
+        } catch (e) {
+          console.log(e);
+        }
+        dispatch({type: 'REMOVEIMG'});
+      },*/
       toggleTheme: () => {
         setIsDarkTheme(isDarkTheme => !isDarkTheme);
       },
@@ -145,6 +164,14 @@ const App = () => {
     }, 1000);
   }, []);
 
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('userToken');
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   if (loginState.isLoading) {
     return (
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
@@ -152,6 +179,7 @@ const App = () => {
       </View>
     );
   }
+
   return (
     <PaperProvider theme={theme}>
       <AuthContext.Provider value={authContext}>
@@ -160,9 +188,7 @@ const App = () => {
             <Drawer.Navigator
               drawerContent={props => <DrawerContent {...props} />}>
               <Drawer.Screen name="HomeDrawer" component={MainTabScreen} />
-              <Drawer.Screen name="SupportScreen" component={SupportScreen} />
-              <Drawer.Screen name="SettingsScreen" component={SettingsScreen} />
-              <Drawer.Screen name="BookmarkScreen" component={BookmarkScreen} />
+              <Drawer.Screen name="Explore" component={ExploreScreen} />
             </Drawer.Navigator>
           ) : (
             <RootStackScreen />

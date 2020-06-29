@@ -16,7 +16,6 @@ import {useTheme} from 'react-native-paper';
 import Feather from 'react-native-vector-icons/Feather';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {AuthContext} from '../components/context';
-import Users from '../model/users';
 
 const SignInScreen = ({navigation}) => {
   const [data, setData] = React.useState({
@@ -24,32 +23,33 @@ const SignInScreen = ({navigation}) => {
     password: '',
     check_textInputChange: false,
     secureTextEntry: true,
-    isValidUser: true,
+    isValidEmail: true,
     isValidPassword: true,
   });
 
   const {colors} = useTheme();
-
   const {signIn} = React.useContext(AuthContext);
-
+  // REGEX pour mail
+  const mailFormat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+  // Func to verify if the email match with the regex and change content of email text input
   const textInputChange = val => {
-    if (val.trim().length >= 4) {
+    if (val.match(mailFormat)) {
       setData({
         ...data,
         email: val,
         check_textInputChange: true,
-        isValidUser: true,
+        isValidEmail: true,
       });
     } else {
       setData({
         ...data,
         email: val,
         check_textInputChange: false,
-        isValidUser: false,
+        isValidEmail: false,
       });
     }
   };
-
+  // Func to change content of the password text input
   const handlePasswordChange = val => {
     if (val.trim().length >= 8) {
       setData({
@@ -65,28 +65,28 @@ const SignInScreen = ({navigation}) => {
       });
     }
   };
-
+  // Func to set visible or not the password
   const updateSecureTextEntry = () => {
     setData({
       ...data,
       secureTextEntry: !data.secureTextEntry,
     });
   };
-
-  const handleValidUser = val => {
-    if (val.trim().length >= 4) {
+  // Func to check if the email is Valid
+  const handleValidEmail = val => {
+    if (val.match(mailFormat)) {
       setData({
         ...data,
-        isValidUser: true,
+        isValidEmail: true,
       });
     } else {
       setData({
         ...data,
-        isValidUser: false,
+        isValidEmail: false,
       });
     }
   };
-
+  // Func to check if the password is long enough
   const handleValidPassword = val => {
     if (val.trim().length >= 8) {
       setData({
@@ -100,40 +100,37 @@ const SignInScreen = ({navigation}) => {
       });
     }
   };
-
-  const userData = {
-    email: 'braum@email.com',
-    password: '123456',
-  };
-
-  const loginUser = userData => {
+  // Func to send the data to the database with in response a token if tha data exist in the DB
+  const loginHandle = (emailData, passwordData) => {
+    /*const foundUser = Users.filter(item => {
+      return email == item.email && password == item.password;
+    });*/
+    const userData = {
+      email: emailData,
+      password: passwordData,
+    };
     axios
       .post(
         'https://europe-west3-socialapplor.cloudfunctions.net/api/login',
         userData,
       )
       .then(res => {
-        console.log(res.data);
+        const token = res.data.token;
+        signIn(token);
+      })
+      .catch(e => {
+        console.log(e);
+        Alert.alert('Invalid Email!', 'Email or Password is incorrect!', [
+          {text: 'Ok'},
+        ]);
       });
-  };
 
-  const loginHandle = (email, password) => {
-    const foundUser = Users.filter(item => {
-      return email == item.email && password == item.password;
-    });
     if (data.email.length == 0 || data.password.length == 0) {
       Alert.alert('Wrong Input!', 'Email or Password field cannot be empty.', [
         {text: 'Ok'},
       ]);
       return;
     }
-    if (foundUser.length == 0) {
-      Alert.alert('Invalid Email!', 'Email or Password is incorrect!', [
-        {text: 'Ok'},
-      ]);
-      return;
-    }
-    signIn(foundUser);
   };
 
   return (
@@ -154,25 +151,20 @@ const SignInScreen = ({navigation}) => {
           style={[
             styles.text_footer,
             {
-              color: colors.text,
+              color: '#95864D',
             },
           ]}>
           Email
         </Text>
         <View style={styles.action}>
-          <FontAwesome name="user-o" color={colors.text} size={20} />
+          <FontAwesome name="at" color="#95864D" size={20} />
           <TextInput
             placeholder="Your Email"
-            placeholderTextColor="#666666"
-            style={[
-              styles.textInput,
-              {
-                color: colors.text,
-              },
-            ]}
+            placeholderTextColor={colors.text}
+            style={[styles.textInput, {color: colors.text}]}
             autoCapitalize="none"
             onChangeText={val => textInputChange(val)}
-            onEndEditing={e => handleValidUser(e.nativeEvent.text)}
+            onEndEditing={e => handleValidEmail(e.nativeEvent.text)}
           />
           {data.check_textInputChange ? (
             <Animatable.View animation="bounceIn">
@@ -180,10 +172,10 @@ const SignInScreen = ({navigation}) => {
             </Animatable.View>
           ) : null}
         </View>
-        {data.isValidUser ? null : (
+        {data.isValidEmail ? null : (
           <Animatable.View animation="fadeInLeft" duration={500}>
             <Text style={styles.errorMsg}>
-              Username must be 4 characters long.
+              Please enter a valid email adress!
             </Text>
           </Animatable.View>
         )}
@@ -192,33 +184,28 @@ const SignInScreen = ({navigation}) => {
           style={[
             styles.text_footer,
             {
-              color: colors.text,
+              color: '#95864D',
               marginTop: 35,
             },
           ]}>
           Password
         </Text>
         <View style={styles.action}>
-          <Feather name="lock" color={colors.text} size={20} />
+          <Feather name="lock" color="#95864D" size={20} />
           <TextInput
             placeholder="Your Password"
-            placeholderTextColor="#666666"
+            placeholderTextColor={colors.text}
             secureTextEntry={data.secureTextEntry ? true : false}
-            style={[
-              styles.textInput,
-              {
-                color: colors.text,
-              },
-            ]}
+            style={[styles.textInput, {color: colors.text}]}
             autoCapitalize="none"
             onChangeText={val => handlePasswordChange(val)}
             onEndEditing={e => handleValidPassword(e.nativeEvent.text)}
           />
           <TouchableOpacity onPress={updateSecureTextEntry}>
             {data.secureTextEntry ? (
-              <Feather name="eye-off" color="grey" size={20} />
+              <Feather name="eye-off" color={colors.text} size={20} />
             ) : (
-              <Feather name="eye" color="grey" size={20} />
+              <Feather name="eye" color={colors.text} size={20} />
             )}
           </TouchableOpacity>
         </View>
@@ -237,10 +224,14 @@ const SignInScreen = ({navigation}) => {
         </TouchableOpacity>
         <View style={styles.button}>
           <TouchableOpacity
-            style={styles.signIn}
+            style={
+              data.email.length == 0 || data.password.length == 0
+                ? styles.signInValid
+                : styles.signIn
+            }
             onPress={() => {
-              //loginHandle(data.email, data.password);
-              loginUser(userData);
+              loginHandle(data.email, data.password);
+              //loginUser(userData);
             }}>
             <LinearGradient
               colors={['#79767A', '#28242A']}
@@ -271,7 +262,7 @@ const SignInScreen = ({navigation}) => {
               style={[
                 styles.textSign,
                 {
-                  color: '#28242A',
+                  color: colors.text,
                 },
               ]}>
               Sign Up
@@ -324,7 +315,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: Platform.OS === 'ios' ? 0 : -12,
     paddingLeft: 10,
-    color: 'black',
   },
   button: {
     alignItems: 'center',
@@ -343,5 +333,8 @@ const styles = StyleSheet.create({
   },
   errorMsg: {
     color: 'red',
+  },
+  signInValid: {
+    display: 'none',
   },
 });

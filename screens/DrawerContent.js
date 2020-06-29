@@ -1,5 +1,7 @@
+import AsyncStorage from '@react-native-community/async-storage';
 import {DrawerContentScrollView, DrawerItem} from '@react-navigation/drawer';
-import React from 'react';
+import axios from 'axios';
+import React, {useCallback, useEffect, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {
   Avatar,
@@ -17,39 +19,114 @@ import {AuthContext} from '../components/context';
 
 export function DrawerContent(props) {
   const paperTheme = useTheme();
+  const [userDetails, setUserDetails] = useState();
+  const [userLikes, setUserLikes] = useState();
+  const [userComments, setUserComments] = useState();
+  // const [img, setImg] = useState();
+  // Func to get all the details of the user (name, likes , notifications ....)
+  const getUserData = useCallback(async () => {
+    try {
+      const feedUT = await AsyncStorage.getItem('userToken');
+      const FBIToken = `Bearer ${feedUT}`;
+      axios.defaults.headers.common['Authorization'] = FBIToken;
+
+      axios
+        .get('https://europe-west3-socialapplor.cloudfunctions.net/api/user')
+        .then(res => {
+          const data = res.data;
+          setUserDetails(data.credentials);
+          setUserLikes(data.notifications);
+          setUserComments(data.notifications);
+        });
+    } catch (e) {
+      console.log(e);
+    }
+  }, []);
+
+  /*const getUserImg = useCallback(async () => {
+    let userImg;
+    try {
+      userImg = await AsyncStorage.getItem('userImg');
+      if (userImg) {
+        setImg(userImg);
+      } else {
+        setImg(null);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }, []);*/
+
+  useEffect(() => {
+    getUserData();
+    // getUserImg();
+  }, []);
 
   const {signOut, toggleTheme} = React.useContext(AuthContext);
+
   return (
     <View style={{flex: 1}}>
       <DrawerContentScrollView {...props}>
         <View style={styles.drawerContent}>
           <View style={styles.userInfoSection}>
             <View style={{flexDirection: 'row', marginTop: 15}}>
-              <Avatar.Image
-                source={{
-                  uri:
-                    'https://firebasestorage.googleapis.com/v0/b/socialapplor.appspot.com/o/1212682473348.png?alt=media&token=95c45001-411a-4aea-be58-995bd95a789d',
-                }}
-                size={50}
-              />
+              {userDetails == null ? (
+                <Avatar.Image
+                  source={{
+                    uri:
+                      'https://firebasestorage.googleapis.com/v0/b/socialapplor.appspot.com/o/no-img.png?alt=media&token=78296785-3780-447f-b509-5606df0ad65a',
+                  }}
+                  size={50}
+                />
+              ) : (
+                <Avatar.Image source={{uri: userDetails.imageUrl}} size={50} />
+              )}
               <View style={{marginLeft: 15, flexDirection: 'column'}}>
-                <Title style={styles.title}>Miss Fortune</Title>
-                <Caption style={styles.caption}>@MissFortune</Caption>
+                {userDetails == null ? (
+                  <Text>User Name</Text>
+                ) : (
+                  <Title style={styles.title}>{userDetails.handle}</Title>
+                )}
+                {userDetails == null ? (
+                  <Text>@username</Text>
+                ) : (
+                  <Caption style={styles.caption}>
+                    @{userDetails.handle}
+                  </Caption>
+                )}
               </View>
             </View>
             <View style={styles.row}>
-              <View style={styles.section}>
-                <Paragraph style={[styles.paragraph, styles.caption]}>
-                  100
-                </Paragraph>
-                <Caption style={styles.caption}>Following</Caption>
-              </View>
-              <View style={styles.section}>
-                <Paragraph style={[styles.paragraph, styles.caption]}>
-                  300
-                </Paragraph>
-                <Caption style={styles.caption}>Followers</Caption>
-              </View>
+              {userLikes == null ? (
+                <View style={styles.section}>
+                  <Paragraph style={[styles.paragraph, styles.caption]}>
+                    0
+                  </Paragraph>
+                  <Caption style={styles.caption}>Likes</Caption>
+                </View>
+              ) : (
+                <View style={styles.section}>
+                  <Paragraph style={[styles.paragraph, styles.caption]}>
+                    {userLikes.filter(not => not.type == 'like').length}
+                  </Paragraph>
+                  <Caption style={styles.caption}>Likes</Caption>
+                </View>
+              )}
+              {userComments == null ? (
+                <View style={styles.section}>
+                  <Paragraph style={[styles.paragraph, styles.caption]}>
+                    0
+                  </Paragraph>
+                  <Caption style={styles.caption}>Notifications</Caption>
+                </View>
+              ) : (
+                <View style={styles.section}>
+                  <Paragraph style={[styles.paragraph, styles.caption]}>
+                    {userComments.length}
+                  </Paragraph>
+                  <Caption style={styles.caption}>Notifications</Caption>
+                </View>
+              )}
             </View>
             <Drawer.Section style={styles.drawerSection}>
               <DrawerItem
@@ -72,33 +149,11 @@ export function DrawerContent(props) {
               />
               <DrawerItem
                 icon={({color, size}) => (
-                  <Icon name="bookmark-outline" color={color} size={size} />
+                  <Icon name="map-search" color={color} size={size} />
                 )}
-                label="Bookmarks"
+                label="Explore"
                 onPress={() => {
-                  props.navigation.navigate('BookmarkScreen');
-                }}
-              />
-              <DrawerItem
-                icon={({color, size}) => (
-                  <Icon name="settings-outline" color={color} size={size} />
-                )}
-                label="Settings"
-                onPress={() => {
-                  props.navigation.navigate('SettingsScreen');
-                }}
-              />
-              <DrawerItem
-                icon={({color, size}) => (
-                  <Icon
-                    name="account-check-outline"
-                    color={color}
-                    size={size}
-                  />
-                )}
-                label="Support"
-                onPress={() => {
-                  props.navigation.navigate('SupportScreen');
+                  props.navigation.navigate('Explore');
                 }}
               />
             </Drawer.Section>
